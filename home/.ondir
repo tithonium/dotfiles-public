@@ -1,0 +1,23 @@
+if [ -x /usr/local/bin/ondir ]; then
+  if type __zsh_like_cd 2>&1 | grep -q 'is a function'; then
+    cd() {
+      __zsh_like_cd cd "$@" && eval "`ondir \"$OLDPWD\" \"$PWD\"`"
+    }
+    pushd() {
+      __zsh_like_cd pushd "$@" && eval "`ondir \"$OLDPWD\" \"$PWD\"`"
+    }
+    popd() {
+      __zsh_like_cd popd "$@" && eval "`ondir \"$OLDPWD\" \"$PWD\"`"
+    }
+  else
+    cd() {
+      command cd "$@" && eval "`ondir \"$OLDPWD\" \"$PWD\"`"
+    }
+    pushd() {
+      command pushd "$@" && eval "`ondir \"$OLDPWD\" \"$PWD\"`"
+    }
+    popd() {
+      command popd "$@" && eval "`ondir \"$OLDPWD\" \"$PWD\"`"
+    }
+  fi
+fi

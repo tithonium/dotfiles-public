@@ -1,0 +1,8 @@
+#!/bin/sh -x
+CURRENT=`git current-branch`
+if [ "$CURRENT" = "master" ]; then
+  git fetch && git rebase origin/master
+else
+  BASE=${1:-master}
+  git checkout $BASE && git fetch && git pull origin $BASE && git checkout ${CURRENT} && git rebase $BASE
+fi

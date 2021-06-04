@@ -1,0 +1,89 @@
+#!/usr/bin/ruby
+
+require 'yaml'
+require 'time'
+
+YearD  = 365.25
+MonthD = YearD / 12
+WeekD  = 7
+
+YearS  = YearD  * 86400
+MonthS = MonthD * 86400
+WeekS  = WeekD  * 86400
+
+class Time ; def s ; hour * 3600.0 + min * 60.0 + sec ; end ; end
+
+conf = ENV['HOME'] + '/Dropbox/Dotfiles/home/.countsdown.yml'
+conf = ENV['HOME'] + '/.countsdown.yml' unless File.exist? conf
+
+unless File.exist? conf
+  # IO.write(conf, YAML.dump( { 'dates' => [['Birthday', '27 Feb 2010'], ["SteamCon", "23 Oct 2009"]] } ))
+  puts "Go edit #{conf}"
+  exit
+end
+
+d = YAML.load(IO.read(conf))
+
+if d.has_key? 'dates'
+  d[:dates] = d.delete('dates')
+  # IO.write(conf, YAML.dump(d))
+end
+
+now = Time.now
+d = d[:dates].map do |(title, datestr)|
+  date = Time.parse(datestr)
+  
+  if date < now && datestr !~ /\d{4}/ # no year given, so always next occurance
+    date = Time.parse("#{datestr} #{now.year + 1}")
+  end
+  delta = date - now
+  ago, absdelta = !!(delta < 0), delta.abs
+  
+  disp = if absdelta > 1.3 * YearS
+    [
+      (
+        (date.year - now.year) +
+        (date.month - now.month) / 12.0 +
+        (date.day - now.day) / YearD +
+        (date.s - now.s) / YearS
+      ).abs,
+      :year
+    ]
+  elsif absdelta > 1.4 * MonthS
+    [
+      (
+        (date.year - now.year) * 12.0 +
+        (date.month - now.month) +
+        (date.day - now.day) / MonthD +
+        (date.s - now.s) / MonthS
+      ).abs,
+      :month
+    ]
+  elsif absdelta > WeekS
+    [ absdelta / WeekS.to_f, :week ]
+  elsif absdelta > 3600
+    [ absdelta / 3600.0, :hour ]
+  elsif absdelta > 60
+    [ absdelta / 60.0, :minute ]
+  else
+    [ absdelta, :second ]
+  end
+  
+  [title, datestr, date, delta, disp, ago]
+end
+
+title_len = d.map(&:first).map(&:length).max
+d.sort!{|a,b| a[3] <=> b[3] }
+
+d.each do |(title, datestr, date, delta, (disp, unit), ago)|
+  precision = 2
+  prefix = ago ? "+" : " "
+  suffix = ''
+  if unit == :second
+    precision = 0
+    suffix = '   '
+  end
+  # STDERR.puts [prefix, precision, disp, unit, suffix, title_len, title].inspect
+  disp = "%s%.*f%1.1s%s" % [prefix, precision, disp, unit, suffix]
+  puts "%*.*s  %8.8s\n" % [title_len, title_len, title, disp]
+end

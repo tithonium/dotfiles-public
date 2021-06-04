@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if git no-pending; then
+  hack
+else
+  echo "Can't hack with pending changes."
+fi

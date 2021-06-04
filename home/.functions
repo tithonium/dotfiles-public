@@ -1,0 +1,110 @@
+#!/bin/bash
+
+bundler_installed() {
+  which bundle > /dev/null 2>&1
+}
+
+within_bundled_project() {
+  local dir="$(pwd)"
+  local dirname=$(dirname "$dir")
+  while [ "${dirname}" != "/" ]; do
+    [ -f "$dir/Gemfile" ] && return
+    dir="${dirname}"
+    local dirname=$(dirname "$dir")
+  done
+  false
+}
+
+gcd() {
+  gem=$1
+  if bundler_installed && within_bundled_project; then
+    cd `bundle show ${gem}`/lib
+  else
+    list=`gem list -d "^${gem}$"`
+    version=`echo "$list" | perl -n -e 'if(/\(([^, ]+)\)/){print $1,"\n";exit}'`
+    path=`echo "$list" | grep 'Installed at' | perl -n -e 'if(/(\/.+)$/){print $1,"\n";exit}'`
+    cd ${path}/gems/${gem}-${version}/lib
+  fi
+}
+
+mw() {
+  name=$1
+  ~/bin/m `which $1`
+}
+
+dgrep() {
+  name=$1 ; shift
+  if [ "`which ag`" != "" ]; then
+    ag --ruby --crystal "def (self\.)?$name" $*
+  else
+    rgrep -E "def (self\.)?$name" $*
+  fi
+}
+dgrepl() {
+  dgrep $* -l
+}
+
+cgrep() {
+  name=$1 ; shift
+  if [ "`which ag`" != "" ]; then
+    ag --ruby "(class|module)\s*([a-zA-Z0-9]+::)*$name" $*
+  else
+    rgrep -E "(class|module)\s*([a-zA-Z0-9]+::)*$name" $*
+  fi
+}
+cgrepl() {
+  cgrep $* -l
+}
+
+sgrep() {
+  name=$1 ; shift
+  if [ "`which ag`" != "" ]; then
+    ag --ruby --crystal "scope\s*:$name" $*
+  else
+    rgrep -E "scope\s*:$name" $*
+  fi
+}
+sgrepl() {
+  sgrep $* -l
+}
+
+run_with_bundler() {
+  local command="$1"
+  shift
+  if bundler_installed && within_bundled_project; then
+    bundle exec $command "$@"
+  else
+    $command "$@"
+  fi
+}
+
+fn() {
+  find . -name \*$1\* | grep -vF .git | grep -vF .DS_Store | grep -vF .keep | grep -vF /node_modules/
+}
+
+ppwd() {
+  echo -n `pwd` | pbcopy
+}
+
+rdoc() {
+  ver=`ruby -e 'print RUBY_VERSION'`
+  open http://ruby-doc.org/core-$ver/
+}
+raildoc() {
+  ver=`rails -v | delim -f=2`
+  open http://api.rubyonrails.org/v$ver/
+}
+
+
+
+
+BUNDLED_COMMANDS="${BUNDLED_COMMANDS:-cucumber heroku rackup rails rake rspec ruby shotgun spec spork guard jets}"
+
+for CMD in $BUNDLED_COMMANDS; do
+  alias $CMD="run_with_bundler $CMD"
+done
+
+
+if [ -e ~/.local_functions ]; then
+  . ~/.local_functions
+fi

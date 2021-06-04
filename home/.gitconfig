@@ -1,0 +1,134 @@
+[color]
+  ui = true
+[core]
+  editor = nano
+  excludesfile = /Users/martian/.gitignore
+  autocrlf = false
+	pager = diff-so-fancy | less --tabs=2 -RX
+[pager]
+  branch = false
+[help]
+  autocorrect = 20
+[push]
+  default = tracking
+[branch]
+  # http://d.strelau.net/post/47338904/git-pull-rebase-by-default
+  # autosetuprebase = always
+[alias]
+  l = log --stat
+  sl = log --oneline --decorate --graph --all
+  co = checkout
+  theirs = checkout --theirs
+  ours = checkout --ours
+  br = branch
+  ci = commit
+  st = status -sb
+  work = !work
+  rename = mv
+  unstage = reset HEAD --
+  amend = commit --amend --reset-author
+  amend-no-reset = commit --amend
+  amend-quick = commit --amend --reset-author --no-edit
+  last = log -1 HEAD
+  viz = !gitx --all
+  hack = !hack
+  ship = !ship
+  current-branch = !git branch | grep '\\*' | awk '{print $2}'
+  latest = rev-parse HEAD
+  freeze = update-index --assume-unchanged
+  thaw = update-index --no-assume-unchanged
+  has = branch -a --contains
+  thas = tag --contains
+  loose-branches = branch -r -v --no-merged
+  continue = !git add . && git rebase --continue
+  cp = cherry-pick
+  cpcontinue = !git add . && git cherry-pick --continue
+  cpskip = cherry-pick --skip
+  abort = rebase --abort
+  cpabort = cherry-pick --abort
+  skip = rebase --skip
+  count = shortlog -sn
+  worddiff = diff --word-diff
+  enable-pr-branches = !git config --local --add remote.origin.fetch '+refs/pull/*/head:refs/remotes/origin/pr/*' && git fetch
+  disable-pr-branches = !git config --local --unset remote.origin.fetch 'refs/remotes/origin/pr' && git remote prune origin
+  remaster = !git co master && git fetch && git reset --hard origin/master
+  rework = !git co master && git branch -D working && git co -b working && hack
+  new-work = !"git fetch && git checkout --no-track -b $1 origin/${2:-master} #"
+  repull-branch = !CURRENT=`git current-branch` && git co master && git fetch && git branch -D $CURRENT && git co $CURRENT
+  tracking-branch = !git rev-parse --abbrev-ref --symbolic-full-name @{u}
+  reset-to-tracking = !git reset --hard `git tracking-branch`
+  clear = !git fetch && git reset --hard `git tracking-branch`
+  update-branch = !TRACKING=`git tracking-branch` && git fetch && git rebase $TRACKING
+  uncommit = !git reset --soft HEAD^ && git unstage .
+  unstash = stash pop
+  checkpoint = !LASTMSG=`git log -1 --pretty=%B` && git add -A && ((test \"X$LASTMSG\" = \"Xcheckpoint\") && git amend-quick) || git commit -m checkpoint
+  # make-pull-request = !CURRENT=`git current-branch` && git push --set-upstream origin $CURRENT && hub browse -- compare/$CURRENT?expand=1
+  make-pull-request = !CURRENT=`git current-branch` && git push --set-upstream origin $CURRENT && gh pr create
+  tidy = !git fetch && git prune && git remote prune origin && git gc --aggressive
+  merged = !is-git-merged
+  no-pending = !git diff --no-ext-diff --quiet --exit-code
+  changes-from-master = diff --name-only origin/master..HEAD
+  shas-from-master = log --pretty=format:%H origin/master..HEAD
+  recent-changes = !"git diff --name-only HEAD~$1..HEAD # "
+  reedit = !"~/bin/m `git recent-changes $1` # "
+  graph = log --graph --pretty=format:'%Cred%h %C(yellow)%an%C(magenta)%d%Creset %s %Cgreen(%cr)%Creset' --date=relative
+	branchhistory = branch --sort=-committerdate --format=\"- %(refname:short)%0a  %(committerdate:relative) | %(authorname)\"
+  brh = branchhistory
+  # delete-untracked-branches = "!git branch -r | awk '{print $1}' | egrep -v -f /dev/fd/0 <(git branch -vv | grep origin) | awk '{print $1}' | xargs git branch -d"
+  # shove = !git push && cap deploy && cap db:reset
+  # stagify = !CURRENT=`git current-branch` && git co staging && git pull . master && git co $CURRENT && git push -n
+  # prodify = !CURRENT=`git current-branch` && git co staging && git co production && git pull . staging && git co $CURRENT && git push -n
+  # deploy = !cap staging deploy
+  # merge-to-staging = !CURRENT=`git current-branch` && git co staging && git pull origin $CURRENT && git push && git co $CURRENT
+[branch]
+  sort = -committerdate
+[include]
+  path = ~/.gitconfig.local
+[filter "media"]
+  clean = git-media-clean %f
+  smudge = git-media-smudge %f
+[filter "lfs"]
+	required = true
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+[credential]
+  helper = osxkeychain
+[difftool "sourcetree"]
+  cmd = opendiff \"$LOCAL\" \"$REMOTE\"
+  path =
+[mergetool "sourcetree"]
+  cmd = /Applications/SourceTree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
+  trustExitCode = true
+[diff]
+  compactionHeuristic = true
+[include]
+  path = ~/.local_gitconfig
+[diff "spaceman-diff"]
+  command = /usr/local/bin/spaceman-diff
+[sequence]
+  editor = interactive-rebase-tool
+[rerere]
+  enabled = false
+[checkout]
+  defaultRemote = origin
+[fetch]
+  prune = false
+[init]
+  templateDir = ~/.dotfiles/git_template
+[pull]
+	rebase = false
+[rebase]
+  # committerDateIsAuthorDate = true
+[color "diff-highlight"]
+	oldNormal = red bold
+	oldHighlight = red bold 52
+	newNormal = green bold
+	newHighlight = green bold 22
+[color "diff"]
+	meta = 11
+	frag = magenta bold
+	commit = yellow bold
+	old = red bold
+	new = green bold
+	whitespace = red reverse

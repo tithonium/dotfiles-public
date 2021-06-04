@@ -1,0 +1,11 @@
+#!/usr/bin/perl
+
+(my $idle_microseconds = `ioreg -c IOHIDSystem | grep HIDIdleTime | tail -1`) =~ s/\D//gs;
+my $idle_seconds = $idle_microseconds / 1000000000;
+
+if(@ARGV) {
+  my $limit = shift;
+  exit($idle_seconds >= $limit ? 0 : 1);
+} else {
+  print $idle_seconds, "\n";
+}

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+PLUGIN=${1-*}
+/usr/bin/open "bitbar://refreshPlugin?name=$PLUGIN"

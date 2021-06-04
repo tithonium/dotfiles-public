@@ -1,0 +1,10 @@
+#!/usr/bin/ruby
+
+require 'jwt'
+
+token = ARGV.count > 0 ? ARGV.first : STDIN.gets.chomp
+
+payload = JWT.decode(token, nil, false, { verify_expiration: false, algorithm: 'HS256' })
+
+puts "token: #{token.inspect}"
+puts "payload: #{payload.first.inspect}"

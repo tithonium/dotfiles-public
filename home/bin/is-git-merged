@@ -1,0 +1,4 @@
+#!/bin/bash
+
+BR=${2:-master}
+( git has $1 2>/dev/null | grep -qE "^\\s*(remotes/)?(origin/)?$BR\$" ) && echo Yes || echo No

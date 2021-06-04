@@ -1,0 +1,7 @@
+#!/bin/sh -x
+CURRENT=`git current-branch`
+if [ "$CURRENT" = "master" ]; then
+  git fetch && git push origin master
+else
+  git checkout master && git merge ${CURRENT} && git push origin master && git fetch && git checkout ${CURRENT}
+fi

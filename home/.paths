@@ -1,0 +1,37 @@
+#!/bin/sh
+
+possible_dirs=$(cat <<EOL
+$HOME/bin
+$HOME/bin/machines
+$HOME/toolkit
+$HOME/toolkit/Martian
+$HOME/workplace/toolkit
+$HOME/workplace/toolkit/Martian
+$HOME/workspace/toolkit
+$HOME/workspace/toolkit/Martian
+$HOME/.rvm/bin
+$HOME/.rbenv/bin
+$HOME/.rbenv/shims
+$HOME/.cargo/bin
+$HOME/.volta/bin
+/usr/local/bin
+/usr/local/sbin
+/usr/local/share/npm/bin
+/usr/local/mysql/bin
+/opt/local/bin
+/opt/local/sbin
+/usr/local/opt/openssl/bin
+/sbin
+/usr/sbin
+/usr/bin
+EOL
+)
+
+add_to_path=
+for p in $possible_dirs; do
+  if [ -e "$p" ]; then
+    add_to_path=$add_to_path$p:
+  fi
+done
+
+export PATH=$add_to_path$PATH

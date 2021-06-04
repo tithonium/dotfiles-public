@@ -1,0 +1,82 @@
+if ! ( (which brew >/dev/null 2>&1) && [ -f $(brew --prefix)/etc/bash_completion ] ); then
+  if ! ( type _init_completion 2>&1 | grep -q 'is a function' ); then
+    function _init_completion {
+      COMPREPLY=()
+      _get_comp_words_by_ref cur prev words cword
+    }
+  fi
+
+  if ! ( type __ltrim_colon_completions 2>&1 | grep -q 'is a function' ); then
+    function __ltrim_colon_completions {
+      if [[ "$1" == *:* && "$COMP_WORDBREAKS" == *:* ]]; then
+        local colon_word=${1%"${1##*:}"};
+        local i=${#COMPREPLY[*]};
+        while [[ $((--i)) -ge 0 ]]; do
+          COMPREPLY[$i]=${COMPREPLY[$i]#"$colon_word"};
+        done;
+      fi
+    }
+  fi
+
+  for i in /usr/local/etc/bash_completion.d/*; do
+    # [[ ${i##*/} != @(*~|*.bak|*.swp|\#*\#|*.dpkg*|.rpm*) ]] &&
+     [ \( -f $i -o -h $i \) -a -r $i ] &&
+      . $i
+  done
+  for i in /opt/local/etc/bash_completion.d/*; do
+    # [[ ${i##*/} != @(*~|*.bak|*.swp|\#*\#|*.dpkg*|.rpm*) ]] &&
+     [ \( -f $i -o -h $i \) -a -r $i ] &&
+      . $i
+  done
+fi
+
+
+HOST_USERNAME_OPTIONS=$(cat $HOME/bin/machines/server-username-list.txt)
+HOST_HOSTNAME_OPTIONS=$(cat $HOME/bin/machines/server-hostname-list.txt)
+
+
+_compuserhost () {
+  cur=${COMP_WORDS[COMP_CWORD]};
+  PREFIX_MATCHES=($(compgen -W "$HOST_USERNAME_OPTIONS" | grep -- "^$cur"))
+  if [ "$PREFIX_MATCHES" != "" ]; then
+    COMPREPLY=(${PREFIX_MATCHES[@]})
+  else
+    ALL_MATCHES=($(compgen -W "$HOST_USERNAME_OPTIONS" | grep -- "$cur"))
+    COMPREPLY=(${ALL_MATCHES[@]})
+  fi
+}
+_comphost () {
+  cur=${COMP_WORDS[COMP_CWORD]};
+  PREFIX_MATCHES=($(compgen -W "$HOST_HOSTNAME_OPTIONS" | grep -- "^$cur"))
+  if [ "$PREFIX_MATCHES" != "" ]; then
+    COMPREPLY=(${PREFIX_MATCHES[@]})
+  else
+    ALL_MATCHES=($(compgen -W "$HOST_HOSTNAME_OPTIONS" | grep -- "$cur"))
+    COMPREPLY=(${ALL_MATCHES[@]})
+  fi
+}
+complete -F _compuserhost ssh
+complete -f -F _compuserhost scp
+complete -F _comphost ping
+complete -F _comphost wait-for-reboot
+complete -f -F _compuserhost rsync
+complete -f -F _compuserhost rrsync
+complete -f -F _compuserhost rdrsync
+
+if [ -d /Users/martian/workspace/deploy ]; then
+  complete -W "$(ls -1 /Users/martian/workspace/deploy/config/deploy/*/*.rb | sed -E 's#.+/([^/]+)/([^/]+).rb#\1:\2#') deploy" cap
+fi
+
+_git_merged() {
+  _git_branch $@
+}
+__git_branchname_tab_completion() {
+  __git_func_wrap _git_branch
+}
+
+complete -F __git_branchname_tab_completion is-git-merged
+complete -F __git_branchname_tab_completion branch-merge-statuses
+complete -F __git_branchname_tab_completion delete-merged-branches
+
+# This is probably a terrible idea, but fuck it, I want colons.
+COMP_WORDBREAKS=$' \t\n"\'@><=;|&('

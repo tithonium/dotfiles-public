@@ -1,0 +1,13 @@
+#!/bin/bash
+
+DIR=${1:-PWD}
+until [ "$DIR" == "/" ]; do
+  if [ -f "$DIR/.env" ]; then
+    perl -p -e '$_="" if /^#/; s@^(?!export )(.+)\n?@export $1@s' $DIR/.env
+    exit
+  elif [ -d "$DIR/.env" ]; then
+    perl -MFile::Basename -p -e 'my $fn=basename($ARGV);s@^(?!export )(.+)\n?@export $fn=$1\n@s' $DIR/.env/*
+    exit
+  fi
+  DIR=$(dirname $DIR)
+done

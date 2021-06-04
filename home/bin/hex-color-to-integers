@@ -1,0 +1,28 @@
+#!/usr/bin/perl
+
+my @colors;
+if(@ARGV) {
+  @colors = @ARGV;
+} else {
+  @colors = <>;
+  chomp @colors;
+}
+
+foreach (@colors) {
+  s!^#!!;
+  my $r, $g, $b;
+  if(/^[0-9a-f]{3}$/i) {
+    ($r, $g, $b) = /^([0-9a-f])([0-9a-f])([0-9a-f])$/i;
+    $r = $r.$r;
+    $g = $g.$g;
+    $b = $b.$b;
+  } elsif(/^[0-9a-f]{6}$/i) {
+    ($r, $g, $b) = /^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i;
+  } else {
+    next;
+  }
+  $r = hex($r);
+  $g = hex($g);
+  $b = hex($b);
+  print join(',', $r, $g, $b), "\n";
+}

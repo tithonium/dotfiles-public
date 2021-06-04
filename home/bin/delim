@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+
+use Getopt::Long qw[:config no_bundling];
+
+my $delim;
+my @fields = ();
+
+GetOptions(
+           "delimiter=s" => \$delim,
+           "fields=s" => \@fields,
+          );
+
+@fields = map { $_ - 1 } split(/\s*,+\s*/, join(',', @fields));
+
+$delim ||= qr/\s+/;
+
+@fields = 0..100 unless @fields;
+
+$| = 1;
+
+while(<>) {
+  chomp;
+  my @f = split /$delim/;
+  my @o = @f[@fields];
+  print join(' ', @o), "\n";
+}

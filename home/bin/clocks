@@ -1,0 +1,48 @@
+#!/usr/bin/env ruby
+
+require 'tzinfo'
+require "date"
+
+class DateTime
+  def seconds_until_end_of_day
+    end_of_day.to_time.to_i - to_time.to_i
+  end
+  def change(options)
+    if new_nsec = options[:nsec]
+      raise ArgumentError, "Can't change both :nsec and :usec at the same time: #{options.inspect}" if options[:usec]
+      new_fraction = Rational(new_nsec, 1000000000)
+    else
+      new_usec = options.fetch(:usec, (options[:hour] || options[:min] || options[:sec]) ? 0 : Rational(nsec, 1000))
+      new_fraction = Rational(new_usec, 1000000)
+    end
+
+    raise ArgumentError, "argument out of range" if new_fraction >= 1
+
+    ::DateTime.civil(
+      options.fetch(:year, year),
+      options.fetch(:month, month),
+      options.fetch(:day, day),
+      options.fetch(:hour, hour),
+      options.fetch(:min, options[:hour] ? 0 : min),
+      options.fetch(:sec, (options[:hour] || options[:min]) ? 0 : sec) + new_fraction,
+      options.fetch(:offset, offset),
+      options.fetch(:start, start)
+    )
+  end
+  def end_of_day
+    change(hour: 23, min: 59, sec: 59, usec: Rational(999999999, 1000))
+  end
+end
+
+timezones = [
+  'America/Los_Angeles',
+  # 'America/New_York',
+  'UTC',
+]
+
+timezones.each do |tzname|
+  tz = TZInfo::Timezone.get(tzname)
+  tzabbr = tz.period_for_utc(Time.now).abbreviation.to_s
+  now = tz.now.to_datetime
+  puts "%3.3s %5.5s (%4.1fh)" % [tzabbr, now.strftime('%H:%M'), now.seconds_until_end_of_day / 3600.0]
+end

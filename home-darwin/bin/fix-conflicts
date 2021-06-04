@@ -1,0 +1,6 @@
+#!/bin/sh
+
+m .
+git status -sb
+sleep 1
+modified-git-files conflicts | m

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+HOSTS=($(~/bin/machines/generate-machine-accessors --list-servers --names-only))
+
+echo
+for HOST in "${HOSTS[@]}"; do
+  echo $HOST
+  $HOST "$*"
+  echo
+done

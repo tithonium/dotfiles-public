@@ -1,0 +1,87 @@
+#!/usr/bin/env ruby
+
+require 'time'
+class Time
+  def minutes_since_midnight ; hour * 60 + min ; end
+end
+
+MINUTES_PER_DAY = 1400
+MINUTES_PER_LINE = if m = ARGV.grep(/\A\d+\Z/).first
+  m.to_i
+else
+  15
+end
+LINE_COUNT = (MINUTES_PER_DAY / MINUTES_PER_LINE) + 2
+
+
+events = `/usr/local/bin/icalBuddy -ec 'Contacts,Facebook Events' -nc -eep notes,attendees,location,url -b '~~~~~' eventsToday 2>/dev/null`.tr(%q[’], %q[']).split('~~~~~').reject(&:empty?).uniq
+
+events, alldays = events.each_with_object([[],[]]) do |event, (e, a)|
+  event = event.chomp
+  event.gsub!(/\n\t\s*(\S)/, ' \1')
+  title, schedule = event.split(/ *\n */)
+  start, finish, _ = if schedule
+    start, finish = schedule.split(/ - /)
+    start = start == "..." ? 0 : Time.parse(start).minutes_since_midnight
+    finish = finish == "..." ? 0 : Time.parse(finish).minutes_since_midnight if finish
+    finish ||= start + MINUTES_PER_LINE
+    title = title.sub(/\A(.{35}).+\Z/, '\1...')
+    start_row = start / MINUTES_PER_LINE
+    finish_row = ((finish - 0.1) / MINUTES_PER_LINE).floor
+    e << {
+      title:  title,
+      start:  start,
+      finish: finish,
+      start_row: [start_row, 0].max,
+      finish_row: [[finish_row, start_row].max, LINE_COUNT - 1].min,
+    }
+  else
+    a << title
+  end
+end
+
+now = Time.now.minutes_since_midnight
+
+rows = LINE_COUNT.times.each_with_object({}){|i,h| h[i] = []}
+events.each do |event|
+  col = (event[:start_row]..event[:finish_row]).map{|r| rows[r].index(nil) || rows[r].length }.max || 0
+  (event[:start_row]..event[:finish_row]).each{|r| rows[r][col] = '|' }
+  rows[event[:finish_row]][col] = '\\'
+  rows[event[:start_row]][col] = event[:title]
+end
+
+rows.values.each{|r| r.map!{|c| c || ''} }
+nowrow = (now / MINUTES_PER_LINE)
+
+colcount = rows.values.map{|r| r.length}.max
+colwidths = rows.values.each_with_object([0] * colcount) do |row, widths|
+  row.each_with_index do |col, idx|
+    widths[idx] = [widths[idx], col.length].max
+  end
+end
+
+if (first_entry = [(0...LINE_COUNT).to_a.find{|idx| rows[idx].length > 0}, (nowrow - 2)].compact.min) > 1
+  (0...(first_entry-1)).each{|idx| rows.delete(idx)}
+end
+
+if (last_entry = [(0...LINE_COUNT).to_a.reverse.find{|idx| rows[idx] && rows[idx].length > 0}, (nowrow + 2)].compact.max) > 2
+  ((last_entry+2)..LINE_COUNT).each{|idx| rows.delete(idx)}
+end
+
+rowfmt = ['%1.1s %5.5s ', *colwidths.map{|w| "  %-#{w}.#{w}s"}].join
+rows.each do |idx, row|
+  row += [''] * (colcount - row.length)
+  t = begin
+    m = idx * MINUTES_PER_LINE
+    h = m / 60
+    m -= (h * 60)
+    "%d:%2.2d" % [h, m]
+  end
+  row.unshift(t)
+  row.unshift(idx == nowrow ? '>' : '')
+  puts rowfmt % row
+end
+if alldays.length > 0
+  puts
+  puts "  Also:  #{alldays.join(', ')}"
+end

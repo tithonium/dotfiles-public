@@ -1,0 +1,50 @@
+#!/usr/bin/perl -s
+
+$from=shift;
+$to=shift;
+
+if($is || $gis) {
+  $from = qr[$from]is;
+} elsif($s || $gs) {
+  $from = qr[$from]s;
+} elsif($i || $gi) {
+  $from = qr[$from]i;
+} else {
+  $from = qr[$from];
+}
+
+print "\$from: '$from'\n";
+print "\$to: '$to'\n";
+
+eval qq[sub to { return "$to"; }] unless $e;
+eval qq[sub to { return $to; }] if $e;
+
+@files = @ARGV ? @ARGV : <>;
+chomp @files;
+$c = 1;
+foreach $f (@files) {
+  my $ff = $f;
+  $cc = sprintf("%2.2d", $c);
+  $ccc = sprintf("%3.3d", $c);
+  $cccc = sprintf("%4.4d", $c);
+  $ccccc = sprintf("%5.5d", $c);
+  $ff =~ s/$from/&to()/eg if $gis || $gs || $gi || $g;
+  $ff =~ s/$from/&to()/e unless $gis || $gs || $gi || $g;
+  if($f ne $ff) {
+    print "'$f' => '$ff'\n";
+    if(-f $ff) {
+      print "ERROR: $ff exists! Skipping.\n";
+    } else {
+      unless($n) {
+        if(lc($f) eq lc($ff)) {
+          rename $f,$f.".foo";
+          rename $f.".foo",$ff;
+        } else {
+          rename $f,$ff;
+        }
+      }
+    }
+  }
+  $c++;
+}
+

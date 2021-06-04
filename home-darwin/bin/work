@@ -1,0 +1,6 @@
+#!/bin/sh
+
+m .
+git status -sb
+sleep 1
+find `modified-git-files` -type f | m

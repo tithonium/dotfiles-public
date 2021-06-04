@@ -1,0 +1,19 @@
+#!/bin/bash
+COMMIT=HEAD
+FILE="$1"
+
+while true
+do
+  git blame "$COMMIT" "$FILE"
+
+  echo "Follow back line number?"
+  read LINE
+  if [ -n "$LINE" ]
+  then
+    COMMIT=`git blame "$COMMIT" "$FILE" | tail -n +$LINE | head -1 | cut -f1 -d' '`
+    git show $COMMIT
+    COMMIT=$COMMIT^
+  else
+    exit
+  fi 
+done

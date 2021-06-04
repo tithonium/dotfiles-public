@@ -1,0 +1,22 @@
+.apdisk
+.bzvol
+.bzvol/**
+.sync
+.com.apple.timemachine.donotpresent
+.com.apple.timemachine.supported
+.DocumentRevisions-V100
+.DocumentRevisions-V100/**
+.fseventsd
+.fseventsd/**
+.Spotlight-V100
+.Spotlight-V100/**
+.TemporaryItems
+.TemporaryItems/**
+.Trashes
+.Trashes/**
+.VolumeIcon.icns
+._.com.apple.timemachine.donotpresent
+._.com.apple.timemachine.supported
+._.Trashes
+._Temp File.tmp
+Temp File.tmp

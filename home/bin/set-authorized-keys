@@ -1,0 +1,135 @@
+#!/usr/bin/perl
+
+eval { require File::Basename; } or ($needinstall |= 1);
+eval { require File::Spec; } or ($needinstall |= 2);
+@ARGV or `which dialog` or ($needinstall |= 8);
+&install if $needinstall;
+
+import File::Basename qw(dirname);
+
+my $origin_root = __FILE__;
+while(-l $origin_root) {
+  my $link = readlink($origin_root);
+  $origin_root = File::Spec->rel2abs( $link, dirname($origin_root) );
+  $origin_root =~ s![^/]+/\.\./!!gs;
+}
+$origin_root =~ s!/home/bin/.+!!;
+
+die "Can't find ${origin_root}/public_keys\n" unless -f "${origin_root}/public_keys";
+
+my $known_keys = `cat '${origin_root}/public_keys'`;
+   $known_keys =~ s!^#\S[^\n]+!!gm;
+   $known_keys =~ s!^# !!gm;
+my %known_keys = grep { /\S/ } split(/\n+/, $known_keys);
+my %known_key_ids = reverse %known_keys;
+
+my $used_keys = `cat ~/.ssh/authorized_keys`;
+   $used_keys =~ s!^#.*$!!gm;
+my @used_keys = sort grep { $_ } split(/\n+/, $used_keys);
+map { s!^(\d+ \d+ \S+|ssh-... \S+) .+$!$1!s; } @used_keys;
+my %used_keys = map { $_ => 1 } @used_keys;
+my @used_key_ids = sort map { $known_key_ids{$_} } @used_keys;
+
+my @new_key_ids;
+
+if(@ARGV) {
+  @known_keys = keys %known_keys;
+  @new_key_ids = @used_key_ids;
+  foreach my $arg (@ARGV) {
+    my $action = $arg =~ /^-+/ ? 'remove' : 'add';
+    $arg =~ s/^[\+-]+//;
+    if($action eq 'remove') {
+      @new_key_ids = grep { ! /\Q$arg\E/ } @new_key_ids;
+    } else {
+      push @new_key_ids, (grep { /\Q$arg\E/ } @known_keys);
+      @new_key_ids = keys %{ { map { $_ => 1 } @new_key_ids } }
+    }
+  }
+  
+} else {
+
+  my $maxnamelen = 0;
+  foreach my $key (keys %known_keys) { $maxnamelen = length($key) if length($key) > $maxnamelen }
+  $maxnamelen += 11;
+
+  my $namecount = keys %known_keys;
+  $namecount = 25 if $namecount > 25;
+  $namecount += 8;
+
+  my $cmd = qq[dialog --separate-output --checklist 'Choose authorized keys for this account' $namecount $maxnamelen $namecount];
+  foreach my $key (sort keys %known_keys) {
+    my $state = $used_keys{$known_keys{$key}} ? 'on' : 'off';
+    $cmd .= qq[ '$key' '' $state];
+  }
+  $cmd .= qq[ 2>/tmp/chosen-authkeys.tmp];
+  my $success = system $cmd;
+  system qq[clear];
+  chomp(@new_key_ids = sort `cat /tmp/chosen-authkeys.tmp`);
+  unlink '/tmp/chosen-authkeys.tmp';
+  exit if $success;
+  
+}
+
+@new_key_ids = sort @new_key_ids;
+
+if (&array_equal(\@used_key_ids, \@new_key_ids)) {
+  print "No change.\n";
+  exit;
+}
+
+open(my $fp, '>', $ENV{HOME}."/.ssh/authorized_keys.new");
+foreach my $key (@new_key_ids) {
+  print $fp qq[# $key\n$known_keys{$key} $key\n];
+}
+close($fp);
+system qq[cp ~/.ssh/authorized_keys ~/.ssh/authorized_keys.bak ; mv ~/.ssh/authorized_keys.new ~/.ssh/authorized_keys && cat ~/.ssh/authorized_keys];
+
+
+
+sub array_equal {
+  my($a, $b) = @_;
+  my @a = @$a; my @b = @$b;
+  return 0 if @a != @b;
+  my %a = map { $_ => 1 } @a;
+  my %b = map { $_ => 1 } @b;
+  foreach my $aa (@a) { return 0 unless $b{$aa}; }
+  foreach my $bb (@b) { return 0 unless $a{$bb}; }
+  return 1;
+}
+
+sub install {
+  $| = 1;
+  print "Looks like you don't have everything we need:\n";
+  if($needinstall & 1) {
+    print "We need the File::Basename module.\n";
+  }
+  if($needinstall & 2) {
+    print "We need the File::Basename module.\n";
+  }
+  if($needinstall & 8) {
+    print "We need the dialog helper application.\n";
+  }
+  print "\nDo you want to install and continue? [Y/n] ";
+  chomp(my $r = <STDIN>);
+  exit unless ($r eq '' || $r =~ /^y/i);
+  if($needinstall & 7) {
+    my @modules = ();
+    push @modules, 'File::Basename' if $needinstall & 1;
+    push @modules, 'File::Spec' if $needinstall & 2;
+    my $cmd = "sudo cpan install " . join(" ", @modules);
+    print $cmd, "\n";
+    system $cmd and die "Unable to install modules!";
+  }
+  if($needinstall & 8) {
+    my $cmd;
+    if($^O eq 'linux') {
+      $cmd = "sudo apt-get install dialog";
+    } elsif($^O eq 'darwin') {
+      $cmd = "brew install dialog";
+    }
+    print $cmd, "\n";
+    system $cmd and die "Unable to install helper application!";
+  }
+  print "\n\n";
+  exec $0;
+}

@@ -1,0 +1,68 @@
+#!/bin/bash
+
+set -e
+set -u
+
+# Install Homebrew
+ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
+# Taps
+brew tap homebrew/core
+brew tap homebrew/services
+brew tap homebrew/versions
+brew tap caskroom/cask
+brew tap michaeldfallen/formula
+brew tap thoughtbot/formulae
+brew tap yudai/gotty
+
+# Install Apps
+brew cask install appcleaner
+brew cask install atext
+brew cask install atom
+brew cask install bleep
+brew cask install box-sync
+brew cask install busycal
+brew cask install busycontacts
+brew cask install caffeine
+brew cask install calibre
+brew cask install chirp
+brew cask install codebox
+brew cask install delicious-library
+brew cask install discord
+brew cask install dropbox
+brew cask install expandrive
+brew cask install flux
+brew cask install geektool
+brew cask install github-desktop
+brew cask install gitx
+brew cask install google-chrome
+brew cask install google-drive
+brew cask install google-earth-pro
+brew cask install handbrake
+brew cask install hosts
+brew cask install keybase
+brew cask install kindle
+brew cask install kindlegen
+brew cask install kk7ds-python-runtime
+brew cask install lighttable
+brew cask install little-snitch
+brew cask install macaw
+brew cask install macdown
+brew cask install mactracker
+brew cask install makemkv
+brew cask install minecraft
+brew cask install osxfuse
+brew cask install paw
+brew cask install sonos
+brew cask install stay
+brew cask install the-unarchiver
+brew cask install torbrowser
+brew cask install veracrypt
+brew cask install virtualbox
+brew cask install viscosity
+
+# Set defaults
+source ./osx_defaults
+
+brew install reattach-to-user-namespace
+brew install fzf && /usr/local/opt/fzf/install

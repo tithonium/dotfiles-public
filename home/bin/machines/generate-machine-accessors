@@ -1,0 +1,220 @@
+#!/usr/bin/ruby
+
+require 'resolv'
+require 'yaml'
+
+root = "#{ENV['HOME']}/Dropbox/Dotfiles/home/bin/machines"
+root = "#{ENV['HOME']}/workspace/dotfiles/home/bin/machines" unless File.exist?(root)
+Dir.chdir(root) || raise("Can't switch to #{root}")
+
+def parse_host_data(data, suffix = [])
+  case data
+  when Hash
+    data = data.flat_map do |key, value|
+      parse_host_data(value, [key, *suffix])
+    end
+  when Array
+    data.flat_map do |value|
+      parse_host_data(value, suffix)
+    end
+  else
+    return [] if data.nil?
+    metadata = {}
+    metadata[:skip] = !!data.sub!(/\A([^a-z0-9]*)-/i, '\1')
+    metadata[:dualhome] = !!data.sub!(/\A([^a-z0-9]*)\$/i, '\1')
+    data, meta = data.split('=', 2)
+    username = 'martian'
+    username, data = data.split('@', 2) if data.include?('@')
+    hostname = [data, *suffix].compact.join('.')
+    meta, name = meta && meta.split('=', 2)
+    name ||= data
+    if meta
+      meta.split(',').each do |datum|
+        case datum.upcase
+        when 'D'
+          metadata[:dns] = true
+        when 'M'
+          metadata[:mail] = true
+        when 'X'
+          metadata[:desktop] = true
+        when '$'
+          metadata[:dualhome] = true
+        when 'B'
+          metadata[:boinc] = true
+        when 'A'
+          metadata[:appliance] = true
+        when 'I'
+          metadata[:internal_only] = true
+        when 'R'
+          metadata[:restic] = true
+        when '-'
+          metadata[:skip] = true
+        end
+      end
+    end
+    [{name: name, username: username, hostname: hostname}.merge(metadata)]
+  end
+end
+
+hosts = parse_host_data(YAML.load(DATA.read))
+
+if list_arg = ARGV.grep(/\A-+list/i).first
+  hosts.reject! {|h| h[:skip] }
+  username_arg = ARGV.grep(/\A-+usernames?\Z/i).first
+  name_arg = ARGV.grep(/\A-+names?(?:-?only)?\Z/i).first
+  case arg = list_arg[/\A-+list(?:-(.+))?\Z/, 1]&.downcase
+  when 'desktops'
+    hosts.select! {|h| h[:desktop] }
+  when 'servers'
+    hosts.reject! {|h| h[:desktop] || h[:appliance] }
+  when 'ssh'
+    hosts.reject! {|h| h[:appliance] }
+  when 'restic'
+    hosts.select! {|h| h[:restic] }
+  when 'dns'
+    hosts.select! {|h| h[:dns] }
+  when 'mail'
+    hosts.select! {|h| h[:mail] }
+  when 'dual', 'dual_home'
+    hosts.select! {|h| h[:dualhome] }
+  when 'boinc', 'seti'
+    hosts.select! {|h| h[:boinc] }
+  when 'pi'
+    hosts.select! {|h| h[:username] == 'pi' }
+  when 'pleiades'
+    hosts.select! {|h| h[:hostname] =~ /pleiades|hyades|mintaka/ }
+  when 'atomics'
+    hosts.select! {|h| h[:hostname] =~ /atomics/ }
+  when 'cluster'
+    hosts.select! {|h| h[:hostname] =~ /pleiades|hyades|atomics/ }
+  end
+  hosts = hosts.flat_map {|h|
+    name = name_arg ? h[:name] : h[:hostname]
+    if username_arg
+      [h[:username], 'root'].map {|u| "#{u}@#{name}" }
+    else
+      name
+    end
+  }
+  puts hosts.join("\n")
+  exit
+end
+
+$delete = ARGV.grep(/\A-+d(elete)?\Z/).count.nonzero?
+$verbose = ARGV.grep(/\A-+v(erbose)?\Z/).count.nonzero?
+$force = ARGV.grep(/\A-+f(orce)?\Z/).count.nonzero?
+
+def login_script(user, hostname, skip: false, dualhome: false, internal_only: false, noforward: false)
+  skip = skip ? "\nexit\n" : ''
+  extopt = [
+    '-t',
+    (noforward ? '-o ClearAllForwardings=yes' : nil),
+  ].compact.join(' ')
+  machine_name = hostname.split('.', 2).first
+  if internal_only
+    (<<-EOF).gsub(/^      /, '')
+      #!/bin/bash
+      #{skip}
+      export TERM=xterm-256color
+      if grep -q 'internal.midgard.org' /etc/resolv.conf; then
+        test -t 1 && echo -n -e "\\033]0;#{user}@#{machine_name}\\007"
+        exec ssh #{extopt} #{user}@#{hostname} "$*"
+      else
+        echo "#{machine_name} is only reachable internally"
+      fi
+    EOF
+  elsif hostname.include?('internal.midgard.org')
+    (<<-EOF).gsub(/^      /, '')
+      #!/bin/bash
+      #{skip}
+      export TERM=xterm-256color
+      if grep -q 'internal.midgard.org' /etc/resolv.conf; then
+        test -t 1 && echo -n -e "\\033]0;#{user}@#{machine_name}\\007"
+        exec ssh #{extopt} #{user}@#{hostname} "$*"
+      else
+        test -t 1 && echo -n -e "\\033]0;#{user}@#{machine_name} via lich\\007"
+        lich exec ssh #{extopt} #{user}@#{hostname} "$*"
+      fi
+    EOF
+  elsif dualhome
+    (<<-EOF).gsub(/^      /, '')
+      #!/bin/bash
+      #{skip}
+      export TERM=xterm-256color
+      test -t 1 && echo -n -e "\\033]0;#{user}@#{machine_name}\\007"
+      if grep -q 'internal.midgard.org' /etc/resolv.conf; then
+        exec ssh #{extopt} #{user}@#{hostname.sub(/\.midgard/, '.internal.midgard')} "$*"
+      else
+        exec ssh #{extopt} #{user}@#{hostname} "$*"
+      fi
+    EOF
+  else
+    (<<-EOF).gsub(/^      /, '')
+      #!/bin/bash
+      #{skip}
+      export TERM=xterm-256color
+      test -t 1 && echo -n -e "\\033]0;#{user}@#{machine_name}\\007"
+      exec ssh #{extopt} #{user}@#{hostname} "$*"
+    EOF
+  end
+end
+
+IO.write(root + '/server-username-list.txt', hosts.reject{|h| h[:skip]}.flat_map{|h| [h[:username], 'root'].map {|u| "#{u}@#{h[:hostname]}" }}.join("\n") + "\n")
+IO.write(root + '/server-hostname-list.txt', hosts.reject{|h| h[:skip]}.map{|h| h[:hostname] }.join("\n") + "\n")
+
+hosts.each do |host|
+  files = [
+    [host[:username], host[:name],                false],
+    ['root',          "root-#{host[:name]}",      false],
+    [host[:username], "#{host[:name]}-nofw",      true],
+    ['root',          "root-#{host[:name]}-nofw", true],
+  ]
+
+  unless (Resolv.getaddress(host[:hostname]) rescue nil)
+    files.each do |_, file|
+      if File.exist?(file)
+        if $delete
+          puts "Deleting #{file}"
+          File.unlink(file)
+        else
+          puts "#{file} for #{host[:hostname]} that doesn't resolve. Pass --delete to remove."
+        end
+      end
+    end
+    next
+  end
+
+  files.each do |login, file, noforward|
+    script = login_script(login, host[:hostname], skip: host[:skip], dualhome: host[:dualhome], internal_only: host[:internal_only], noforward: noforward)
+    if !$force && File.exist?(file)
+      if $verbose
+        puts "#{file} exists. Not overwriting."
+        if $verbose > 1
+          puts "Existing file: #{IO.read(file).inspect}"
+          puts "Want to write: #{script.inspect}"
+          puts
+        end
+      end
+    else
+      File.open(file, 'w', 0755) {|fp| fp.puts script }
+      if $verbose
+        puts "Creating #{file} with #{script.inspect}"
+      else
+        puts "Creating #{file}"
+      end
+    end
+  end
+end
+
+__END__
+
+---
+domain:
+  my:
+  - machine1=D,M,R
+  - machine2=R
+  - internal:
+    - machine3=X
+    - machine4=B
+    - subdomain:
+      - machine5

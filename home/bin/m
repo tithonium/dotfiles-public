@@ -1,0 +1,37 @@
+#!/bin/bash
+
+MODE=indiv
+# if [ "`which mine`" != "" ]; then
+#   CMD=mine
+if [ "`which code`" != "" ]; then
+  CMD=code
+  MODE=bulk
+elif [ "`which atom`" != "" ]; then
+  CMD=atom
+  # MODE=bulk
+elif [ "`which mate`" != "" ]; then
+  CMD=mate
+elif [ "`which rmate`" != "" ]; then
+  CMD=rmate
+elif [ "`which ratom`" != "" ]; then
+  CMD=ratom
+else
+  CMD=nano
+fi
+
+if [ "$MODE" == "bulk" ]; then
+  if [ "$#" != "0" ]; then
+    $CMD "$@"
+  else
+    /usr/bin/xargs -J{} $CMD {}
+  fi
+else
+  if [ "$#" != "0" ]; then
+    for F in "$@"; do
+      $CMD "$F"
+      # sleep 1
+    done
+  else
+    /usr/bin/xargs -L1 -J{} $CMD {}
+  fi
+fi

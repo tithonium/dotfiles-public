@@ -1,0 +1,3 @@
+export rvm_install_on_use_flag=1
+export rvm_autoupdate_flag=2
+# export rvm_autoinstall_bundler_flag=1

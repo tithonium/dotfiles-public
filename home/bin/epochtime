@@ -1,0 +1,29 @@
+#!/usr/bin/ruby
+
+require 'time'
+
+ARGV << 'now' if ARGV.empty?
+
+ARGV.each do |ds|
+  d = ds == 'now' ? Time.now : (/^\d+$/ === ds ? Time.at(ds.to_i) : Time.parse(ds))
+  puts "%s  =>  %d  =>  %s  =>  %s" % [ds.inspect, d.to_i, d.to_s, d.gmtime.to_s]
+end
+
+__END__
+
+#!/usr/bin/perl
+
+use Date::Manip;
+
+@ARGV=('now') unless @ARGV;
+
+foreach my $d (@ARGV) {
+  $d = "epoch $d" unless $d =~ /\D/;
+  printf $d;
+  print " => ", ParseDate($d);
+  print " => ", UnixDate($d, '%s');
+  print " => ", UnixDate($d, '%u');
+  Date_Init('TZ=GMT');
+  print " => ", UnixDate($d, '%u');
+  print "\n"
+}

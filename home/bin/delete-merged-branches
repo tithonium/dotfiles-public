@@ -1,0 +1,3 @@
+#!/bin/bash
+
+branch-merge-statuses $* | grep ^Yes | delim -f=2 | xargs git branch -D

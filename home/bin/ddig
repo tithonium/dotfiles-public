@@ -1,0 +1,11 @@
+#!/bin/bash
+
+D=$1
+
+until [ -e $D ]; do
+  echo "$D not found..."
+  D=$(dirname $D)
+done
+
+echo "$D:"
+ls $D

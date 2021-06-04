@@ -1,0 +1,8 @@
+#!/usr/bin/perl
+
+if(@ARGV == 3) {
+  printf "#%2.2X%2.2X%2.2X\n", @ARGV;
+} else {
+  $ARGV[0] =~ s/^#//;
+  print join(' ', map { sprintf('%3d', hex($_)) } grep {/../} split(/(..)/, $ARGV[0])), "\n";
+}

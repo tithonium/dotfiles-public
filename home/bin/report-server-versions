@@ -1,0 +1,3 @@
+#!/bin/bash
+
+on-all-servers 'lsb_release -a ; uname -a' 2>/dev/null | perl -n -e 'BEGIN{$s=0};chomp;if($_ eq ""){$s=0;if($rel||$ker){printf "%-12s   %-11s    %s\n", $host, $rel, $ker};$host=$rel=$ker=""}elsif($s == 0){if(/\S/){$host = $_;$s=1}}elsif($s == 1){if(/Description:\s*Ubuntu ([0-9\.]+(?: LTS)?)/){$rel = $1}elsif(/^Linux \S+ (\S+) /){$ker = $1;$ker =~ s!([\.-])(\d+)!sprintf("%s%3d",$1,$2)!ge}}'

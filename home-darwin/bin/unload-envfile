@@ -1,0 +1,3 @@
+#!/bin/bash
+
+/Users/martian/bin/load-envfile $* | perl -p -e 's!^export !unset !; s!=.+!!;'

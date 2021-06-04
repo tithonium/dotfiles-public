@@ -1,0 +1,3 @@
+#!/usr/bin/perl -n
+
+print unless $c{$_}++ > 0

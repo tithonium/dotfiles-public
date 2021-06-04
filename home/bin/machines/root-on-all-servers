@@ -1,0 +1,14 @@
+#!/bin/bash
+
+HOSTS=(
+  machine1
+  machine2
+  machine3
+)
+
+echo
+for HOST in "${HOSTS[@]}"; do
+  echo root@$HOST
+  root-$HOST "$*"
+  echo
+done

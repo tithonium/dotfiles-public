@@ -1,0 +1,67 @@
+#!/usr/bin/env ruby
+
+$cmd = ARGV.shift
+$count = (ARGV.shift || 10).to_i
+simul = (ARGV.shift || [$count, 5].min).to_i
+
+
+Thread.main[:count] = $count
+
+ost = Time.now.to_f
+times = Thread.main[:times] = []
+STDERR.print "." * $count
+threads = (1..simul).map do |s|
+  Thread.new do
+    while Thread.main[:count] > 0
+      Thread.main[:count] -= 1
+      st = Time.now.to_f
+      system $cmd
+      et = Time.now.to_f - st
+      Thread.main[:times] << et
+      STDERR.print "\b \b"
+    end
+  end
+end
+while threads.length > 0
+  sleep 0.1
+  threads.select!(&:status)
+end
+oet = Time.now.to_f - ost
+
+min = times.min
+max = times.max
+sum = times.inject(&:+)
+cnt = times.count
+avg = sum / cnt
+dev = Math.sqrt(times.inject{|s, v| s + ((v - avg) ** 2) } / cnt)
+
+STDERR.puts "run: %7.4fs / %d" % [oet, cnt]
+# puts "sum: %7.4fs" % sum
+puts "min: %7.4fs" % min
+puts "max: %7.4fs" % max
+puts "rng: %7.4fs" % (max - min)
+puts "avg: %7.4fs" % avg
+puts "std dev: %7.4fs" % dev
+
+last_count = cnt
+
+(1..3).each do |n|
+  n_sigma = times.select{|v| (v - avg).abs < (n * dev) }
+  
+  n_sigma_cnt = n_sigma.count
+  break if n_sigma_cnt == last_count || n_sigma_cnt == cnt
+  last_count = n_sigma_cnt
+  
+  n_sigma_min = n_sigma.min
+  n_sigma_max = n_sigma.max
+  n_sigma_sum = n_sigma.inject(&:+)
+  n_sigma_avg = n_sigma_sum / n_sigma_cnt
+  
+  puts
+  puts "within %dσ: %d (%.1f%%)" % [n, n_sigma_cnt, n_sigma_cnt * 100.0 / cnt]
+  # puts "%dσ sum: %7.4fs" % [n, n_sigma_sum]
+  puts "%dσ min: %7.4fs" % [n, n_sigma_min]
+  puts "%dσ max: %7.4fs" % [n, n_sigma_max]
+  puts "%dσ rng: %7.4fs" % [n, (n_sigma_max - n_sigma_min)]
+  puts "%dσ avg: %7.4fs" % [n, n_sigma_avg]
+end

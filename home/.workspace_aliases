@@ -1,0 +1,8 @@
+#!/bin/bash
+
+eval "$(ruby -e '{
+  con: :contacts,
+  eni: :eniac,
+  dv: :dv,
+  enh: :enhance,
+}.each{|k,v| puts %Q@if [ -d \x22$HOME/workspace/#{v}\x22 ]; then\n  alias #{k}=\x22cd $HOME/workspace/#{v}\x22\n  alias #{k}m=\x22cd $HOME/workspace/#{v} ; m .\x22\n  alias #{k}me=\x22cd $HOME/workspace/#{v} ; m . ; exit\x22\nelif [ -d \x22$HOME/dev/#{v}\x22 ]; then\n  alias #{k}=\x22cd $HOME/dev/#{v}\x22\n  alias #{k}m=\x22cd $HOME/dev/#{v} ; m .\x22\n  alias #{k}me=\x22cd $HOME/dev/#{v} ; m . ; exit\x22\nfi\n\n@ }')"

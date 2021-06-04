@@ -1,0 +1,14 @@
+.DS_Store
+mkmf.log
+tmp/restart.txt
+config/database.*.yml
+*.sql
+*.sqlite
+*.sqlite3
+*.sqlite3.bak
+rerun.txt
+tmp/webrat*.html
+app/config/core.php
+.bundle
+config/initializers/local_ssso_config.rb
+db/structure.sql

@@ -1,0 +1,9 @@
+#!/usr/bin/perl
+
+sub fnsort {
+  (my $aa = $a) =~ s!.*/!!;
+  (my $bb = $b) =~ s!.*/!!;
+  $aa cmp $bb || $a cmp $b;
+}
+
+print sort fnsort <>;

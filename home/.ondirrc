@@ -1,0 +1,13 @@
+#enter /Users/martian/workspace/[^/]+
+#  eval "`/Users/martian/bin/manage-services bash`"
+enter /Users/martian/workspace/cabrini/shipper
+  OLDGOPATH=$GOPATH
+  export GOPATH=/Users/martian/workspace/cabrini/shipper
+  export PATH=$PATH:$GOPATH/bin
+leave /Users/martian/workspace/cabrini/shipper
+  export PATH=`echo $PATH | sed -e "s,:$GOPATH/bin,,g"`
+  export GOPATH=$OLDGOPATH
+enter /Users/martian/workspace/[^/]+
+  eval "`/Users/martian/bin/load-envfile $ONDIRWD`"
+leave /Users/martian/workspace/[^/]+
+  eval "`/Users/martian/bin/unload-envfile $ONDIRWD`"

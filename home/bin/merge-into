@@ -1,0 +1,47 @@
+#!/usr/bin/ruby
+
+require 'find'
+require 'fileutils'
+
+$options = ARGV.dup.inject({}) do |h,k|
+  if k =~ /^-/
+    key, value = if k =~ /.+=(.*)/
+      k.split('=', 2)
+    else
+      [k, true]
+    end
+    key = key.sub(/^-+/,'').to_sym
+    h[key] = value
+    ARGV.delete k
+  end
+  h
+end
+
+def merge(from, into)
+  Find.find(from) do |path|
+    if File.basename(path)[0] == ?.
+      Find.prune
+    end
+    next if File.directory?(path)
+    relative_path = path.sub(/^#{from}/, '')
+    dest_path = into + relative_path
+    dest_dir = File.dirname(dest_path)
+    # puts [path, relative_path, dest_path, dest_dir].inspect
+    unless Dir.exists?(dest_dir)
+      puts "> mkdir -p #{dest_dir}"
+      FileUtils.mkpath(dest_dir) unless $options[:n]
+    end
+    unless File.exists?(dest_path)
+      puts "> mv #{path} #{dest_dir}"
+      FileUtils.move(path, dest_path) unless $options[:n]
+    else
+      puts "X mv #{path} #{dest_dir}"
+    end
+  end
+end
+
+dest = ARGV.pop
+
+ARGV.each do |source|
+  merge(source, dest)
+end

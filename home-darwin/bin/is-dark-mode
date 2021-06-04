@@ -1,0 +1,16 @@
+#!/bin/bash
+
+MODE=`defaults read -g AppleInterfaceStyle 2>&1`
+if [ "$MODE" == "Dark" ]; then
+  exit 0
+else
+  exit 1
+fi
+
+# #!/usr/bin/osascript
+#
+# tell application id "com.apple.systemevents"
+#   tell appearance preferences
+#     return dark mode
+#   end tell
+# end tell

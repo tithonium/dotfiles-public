@@ -1,0 +1,68 @@
+#!/usr/bin/perl
+
+my %options;
+my @repo_urls;
+foreach (@ARGV) {
+  if(/^-/) {
+    my($opt, $val) = /-+([a-z]+?)(?:=(.+))?$/;
+    $options{$opt} = $val || 1;
+  } else {
+    push @repo_urls, $_;
+  }
+}
+
+chomp(@repo_urls = <>) unless @repo_urls;
+
+my @repos;
+foreach my $repo (@repo_urls) {
+  if($repo =~ m!github.com/([^/]+)/?$!i) {
+    my $user = $1;
+    $user =~ s!\?.*!!;
+    my $url = "https://api.github.com/users/$user/repos";
+    use JSON qw[decode_json];
+    for(my $i = 1; ; $i++) {
+      my $u = $url . "?page=${i}&per_page=100";
+      # print $u,"\n";
+      my $json = `curl -s -H "Authorization: token 0123456789abcdef0123456789abcdef01234567" "$u"`;
+      $json = decode_json($json);
+      foreach my $repo (@$json) {
+        push @repos, $repo->{ssh_url};
+      }
+      last if scalar(@$json) < 100;
+    }
+  } else {
+    push @repos, $repo;
+  }
+}
+
+foreach my $repo (@repos) {
+  my $origrepo = $repo;
+  my $into;
+  print "repo[$repo]";
+  $repo =~ s!(?:(?:https?|git)://)?github.com/([^/]+/[^/]+?)(\.git)?$!git\@github.com:$1.git!;
+  $repo =~ s!(?:(?:https?|git)://)?gist.github.com/([^/]+/)?([^/]+?)(\.git)?$!git\@github.com:$2.git!;
+  $repo .= '.git' if $repo =~ /github.com/ && $repo !~ /\.git$/;
+  if($origrepo =~ /gist.github.com/ && $repo =~ m!github.com:(([^/]+))\.git!) {
+    $into = "gist/" . $1;
+    mkdir "gist" unless -d "gist";
+  } elsif($options{userdirs} && $repo =~ m!(?:github.com|bitbucket.org|gitlab.com)[:/](([^/]+)/[^/]+)\.git!) {
+    my($r,$u) = ($1,$2);
+    mkdir $u unless -d $u;
+    $into = $r;
+  } elsif($options{userdirs} && $repo =~ m!git.code.sf.net/p/(([^/]+)/[^/]+)(?:\.git)?!) {
+    my($r,$u) = ($1,$2);
+    mkdir $u unless -d $u;
+    $into = $r;
+  } elsif ($repo =~ m!([^/]+)\.git!) {
+    $into = $1;
+  }
+  print "  uri[$repo]";
+  print "  destination[$into]\n";
+  if(-d $into) {
+    print qq["$into" exists!\n];
+    next
+  }
+  my $cmd = qq[git clone "$repo" $into];
+  print $cmd, "\n";
+  system $cmd;
+}

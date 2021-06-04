@@ -1,0 +1,46 @@
+#!/usr/bin/perl
+
+# use Data::Dumper::Simple;
+
+my $gitStatus = `git status -s 2>&1`;
+
+if($gitStatus =~ /fatal/) {
+  print STDERR $gitStatus;
+  exit(-1);
+}
+
+my @lines = split(/\n/, $gitStatus);
+# print Dumper(@lines);
+
+my %files = map {
+  my($status, $file) = /^\s*(\S+) +(.+)$/;
+  $file => $status
+} @lines;
+# print Dumper(%files);
+
+my @files = sort keys %files;
+
+unless(@ARGV) {
+  print join("\n", @files), "\n";
+  exit(0);
+}
+
+my $filters = '^(' . join('|', map {
+  if(/^(e(dit(ed)?)?|m(od(ified)?)?)$/) {
+    'M'
+  } elsif(/^a(dd(ed)?)?$/) {
+    '(A|\?\?)'
+  } elsif(/^d(el(ete(ed)?)?)?$/) {
+    'D'
+  } elsif(/^t(ype)?$/) {
+    'T'
+  } elsif(/^c(on(flict(s|ed)?)?)?$/) {
+    'UU|AA|UA|AU'
+  }
+} @ARGV) . ')$';
+# print Dumper($filters);
+$filters = qr[$filters]i;
+# print Dumper($filters);
+
+print join("\n", grep { $files{$_} =~ $filters } @files), "\n";
+exit(0);

@@ -1,0 +1,4 @@
+#!/bin/sh
+
+pbcopy
+pbpaste | cat

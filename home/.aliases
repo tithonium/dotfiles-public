@@ -1,0 +1,147 @@
+#!/bin/bash
+
+alias ..="cd .."
+alias cd..="cd .."
+alias cdp='cd `pwd`'
+
+# alias edit="nano -wpd"
+edit() {
+  $EDITOR $*
+}
+alias ff="find . -type f | grep -vF .git | grep -vF .DS_Store | grep -vF .keep | grep -vF /node_modules/"
+alias faf="find . -type f"
+alias fd="find . -type d | grep -vF .git"
+
+alias ts='date "+%Y%m%d%H%M%S"'
+alias tss='date "+%Y%m%d"'
+
+alias bz="bzip2"
+alias gz="gzip"
+
+alias jpp='python -mjson.tool'
+
+alias eprofile="nano ~/.profile ; . ~/.profile"
+alias ealiases="nano ~/.aliases ; . ~/.aliases"
+alias ecron="nano ~/.crontab ; crontab ~/.crontab ; crontab -l"
+
+alias al="tail -n0 -f /var/log/apache*/*log /var/www/log/*log /var/log/apache2/vhosts/*/*/*/*log"
+
+alias tcpdump="tcpdump -l -s 1024 -vvv -X "
+
+alias gits="git st"
+alias gitl="git l"
+alias gitlp="git l -p"
+alias gitv="git viz"
+alias gitb="git browse"
+alias gitdiff="git diff -U10 -w --color-moved"
+alias gitd=gitdiff
+alias gitdiffs="git diff -U10 -w --staged"
+alias gitds=gitdiffs
+alias gitpr="git make-pull-request"
+
+alias rrsync="rsync -rlptgoDvxz --progress --exclude-from=$HOME/.rsync.exclude"
+alias rdrsync="rsync -rlptgoDvxz --delete --delete-during --delete-excluded --progress --exclude-from=$HOME/.rsync.exclude"
+alias srrsync="sudo rsync -rlptgoDvxz --progress --exclude-from=$HOME/.rsync.exclude"
+alias srdrsync="sudo rsync -rlptgoDvxz --delete --delete-during --delete-excluded --progress --exclude-from=$HOME/.rsync.exclude"
+
+alias export-current-branch='export BRANCH=`git current-branch` ; echo $BRANCH'
+
+if [ "`which rbenv`" != "" ]; then
+  alias enbundle="( (rbenv which bundle >/dev/null 2>&1) || gem install bundler) && bundle install"
+else
+  alias enbundle="(which -s bundle || gem install bundler) && bundle install"
+fi
+
+if [ -e ~/.workspace_aliases ]; then
+  . ~/.workspace_aliases
+fi
+
+alias dir="ls -lFgA"
+alias la="ls -FA"
+
+UN=`uname`
+if [ "$UN" == "Linux" ]; then
+  alias l="tail -f /var/log/messages /var/log/syslog"
+
+  alias dir="ls -lFA --color=auto"
+  alias la="ls -FA --color=auto"
+  alias p="ps axfw"
+
+  if [ "$EUID" != 0 ]; then
+    alias apt-get="sudo apt-get"
+    alias cpan="sudo cpan"
+  fi
+
+elif [ "$UN" == "Darwin" ]; then
+  alias l="tail -f log/*log"
+
+  alias cleardnscache="sudo killall -HUP mDNSResponder;sudo killall mDNSResponderHelper;sudo dscacheutil -flushcache"
+
+  REV=`uname -r`
+
+  if [ "`which exa`" == '' ]; then
+    alias dir="ls -lAFG"
+  else
+    # alias dir='exa -laF --git'
+    alias dir='exa -laF'
+  fi
+  alias la="ls -AFG"
+  alias p="ps axw"
+  alias top="top -ocpu"
+
+  if [ "$REV" '>' "12.0.0" ]; then
+    alias rgrep="find . -type f -follow -print0 | xargs -0 grep "
+  else
+    alias rgrep="find . -type f -follow -print0 | grep -zZvF .svn | grep -zZvF .git | grep -zZvF vcr_cassettes | grep -zZvF sass-cache | xargs -0 grep "
+  fi
+
+  alias updatedb="sudo /usr/libexec/locate.updatedb"
+
+  alias apache-reset='sudo apachectl stop ; sleep 2 ; kill `pgrep ruby` ; sleep 2 ; kill `pgrep ruby` ; sleep 2 ; sudo apachectl start'
+
+  alias restart="osascript -e 'tell application \"Finder\" to restart'"
+
+  alias htop='sudo htop'
+
+  if [ "$SSH_CONNECTION" == "" ]; then # not ssh conncetion
+    alias quit='/usr/bin/osascript -e '\''tell application "Terminal"'\'' -e '\''quit'\'' -e '\''end tell'\'
+  fi
+
+
+  alias brw=brew
+  alias brwe=brew
+  alias berw=brew
+
+else
+
+  alias dir="ls -lA"
+  alias la="ls -A"
+
+fi
+
+if [ -x /usr/local/bin/hub ]; then
+  eval `hub alias -s bash`
+fi
+
+if [ -e ~/.local_aliases ]; then
+  . ~/.local_aliases
+fi
+
+if [ "`which fzf`" != "" ]; then
+  if [ "`which ag`" != "" ]; then
+    export FZF_DEFAULT_COMMAND='ag -g ""'
+  fi
+  alias fm='fzf | m'
+fi
+
+if [ "`which docker`" != "" ]; then
+  if docker node ls >/dev/null 2>&1 ; then
+    alias dp='echo local: ; docker ps -a --no-trunc ; echo ; echo services: ; docker service ls ; for id in `docker service ls --format "{{.Name}}"`; do
+      echo
+      echo $id:
+      docker service ps --no-trunc $id
+    done'
+  else
+    alias dp='docker ps -a --no-trunc'
+  fi
+fi
